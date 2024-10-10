@@ -156,11 +156,11 @@ class dataset_norm(Dataset):
             # print(f"'{name_base}' not found in primary_column, searching in secondary_column instead.")
 
             #### 2th fold 일 때 클래스 부분 조정해줘야함!!!! 이외에는 0 ####
-            class_add = 0  # HKdb-1, SDdb-1 기준
             # class_add = 156  # HKdb-2 기준
             # class_add = 318  # SDdb-2 기준
 
-            class_base = str(int(directory.replace('\\', '/').split('/')[-2]) + class_add)  # 클래스 부분 추출
+            # class_base = str(int(directory.replace('\\', '/').split('/')[-2]) + class_add)  # 클래스 부분 추출
+            class_base = directory.replace('\\', '/').split('/')[-2]  # HKdb-1, SDdb-1 기준 클래스 부분 추출
             classlist = csvfile.iloc[:, 2].str.contains(class_base, na=False)    # class 기준으로 찾기, 5개의 True
             # print(classlist)  # 잘 나옴
 
