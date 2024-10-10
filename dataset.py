@@ -80,7 +80,7 @@ class dataset_norm(Dataset):
         self.imgSize = imgSize
         self.inputsize = inputsize
 
-        self.csvfile = r'C:\Users\8138\PycharmProjects\DION4FR_modified\recognition\Datasets\DS_TEST_bad(B)\registerds.csv'  # 24.10.05 HKDB-2
+        self.csvfile = '/content/drive/MyDrive/recognition/Datasets/DS_TEST_bad(A)/registerds.csv'  # 24.10.10 HKDB-1
 
         self.img_list1 = imglist1
         self.img_list2 = imglist2
@@ -156,7 +156,8 @@ class dataset_norm(Dataset):
             # print(f"'{name_base}' not found in primary_column, searching in secondary_column instead.")
 
             #### 2th fold 일 때 클래스 부분 조정해줘야함!!!! 이외에는 0 ####
-            class_add = 156  # HKdb-2 기준
+            class_add = 0  # HKdb-1, SDdb-1 기준
+            # class_add = 156  # HKdb-2 기준
             # class_add = 318  # SDdb-2 기준
 
             class_base = str(int(directory.replace('\\', '/').split('/')[-2]) + class_add)  # 클래스 부분 추출
