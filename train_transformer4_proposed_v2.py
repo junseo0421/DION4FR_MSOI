@@ -417,7 +417,7 @@ if __name__ == '__main__':
     SAVE_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
     SAVE_LOG_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/logs_all'  # 24.10.10 HKdb-1
     LOAD_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
-    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/recognition/HKPU_A/checkpoints/3EPOCH.pt'  # 24.10.10 HKdb-1
+    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/Recognition/HKPU_A/checkpoints/3EPOCH.pt'  # 24.10.10 HKdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
