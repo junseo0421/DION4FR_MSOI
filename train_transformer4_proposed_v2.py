@@ -345,16 +345,16 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
                 # composite image 저장 용
                 composite_pil = torch.tensor(com_img).permute(2, 0, 1).to(dtype=torch.float32, device='cuda:0')
 
-                if (epoch % 20) == 0:
-                    save_dir = r'D:\DION4FR\rec_loss\output\HKdb-2\composite_images'  # 24.10.05 HKDB-2
-                    com_save_dir = join(save_dir, f'epoch_{epoch}/')
-                    os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
+                # if (epoch % 20) == 0:
+                #     save_dir = r'D:\DION4FR\rec_loss\output\HKdb-2\composite_images'  # 24.10.05 HKDB-2
+                #     com_save_dir = join(save_dir, f'epoch_{epoch}/')
+                #     os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
 
-                    save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
-                    save_path = os.path.join(com_save_dir, save_filename)
+                #     save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
+                #     save_path = os.path.join(com_save_dir, save_filename)
 
-                    save_image(composite_pil, save_path)
-                    print("valid_batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
+                #     save_image(composite_pil, save_path)
+                #     print("valid_batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
 
                 com_img = composite_pil.unsqueeze(0)  # (1, 3, 224, 224)
 
@@ -414,10 +414,10 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = r'D:\DION4FR\rec_loss\output\HKdb-2\checkpoints'  # 24.09.25 HKdb-2
-    SAVE_LOG_DIR = r'D:\DION4FR\rec_loss\output\HKdb-2\logs_all'  # 24.09.25 HKdb-2
-    LOAD_WEIGHT_DIR = r'D:\DION4FR\rec_loss\output\HKdb-2\checkpoints'  # 24.09.25 HKdb-2
-    LOAD_REC_WEIGHT_DIR = r'C:\Users\8138\PycharmProjects\DION4FR_modified\recognition\Output\HKPU_B\checkpoints\3EPOCH.pt'  # 24.09.25 HKdb-2
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
+    SAVE_LOG_DIR = '/content/drive/MyDrive/output/HKdb-1/logs_all'  # 24.10.10 HKdb-1
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
+    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/recognition/HKPU_A/checkpoints/3EPOCH.pt'  # 24.10.10 HKdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -484,9 +484,9 @@ if __name__ == '__main__':
     recognizer.eval()  # Set the recognizer to evaluation mode
 
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
-    base_dir = r'C:\Users\8138\Desktop\SD&HK finger-vein DB'
-    HKdb_dir = r'HK-db\HKdb_2'  # 24.10.05 HKDB-2
-    SDdb_dir = r'SD-db\SDdb_1'
+    base_dir = '/content'
+    HKdb_dir = 'HK-db/HKdb_1'  # 24.10.10 HKDB-1
+    SDdb_dir = 'SD-db/SDdb_1'
 
     # 각 서브 폴더의 경로를 설정
     original_dir = join(base_dir, 'original_images_split', HKdb_dir)
