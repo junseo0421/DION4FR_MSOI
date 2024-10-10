@@ -151,7 +151,7 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
                 if isinstance(matching_img, str):
                     # 문자열인 경우 이미지를 불러옴
                     matching_img = matching_img.replace('\\', '/')
-                    matched_img = iio.imread(join('recognition/', matching_img))
+                    matched_img = iio.imread(join('/content/DION4FR_modified/recognition/', matching_img))
                 else:
                     print(f"Error: matching_img가 파일 경로 문자열이 아닙니다. 현재 값: {matching_img}")
 
@@ -338,7 +338,7 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
                 if isinstance(matching_img, str):
                     # 문자열인 경우 이미지를 불러옴
                     matching_img = matching_img.replace('\\', '/')
-                    matched_img = iio.imread(join('recognition/', matching_img))
+                    matched_img = iio.imread(join('/content/DION4FR_modified/recognition/', matching_img))
                 else:
                     print(f"Error: matching_img가 파일 경로 문자열이 아닙니다. 현재 값: {matching_img}")
 
