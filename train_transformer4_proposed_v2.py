@@ -177,7 +177,9 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
 
                 label_tensor = torch.tensor(labels[j], dtype=torch.long).unsqueeze(0).to(torch.device('cuda:0'))  # (0,) or (1,) 처럼 차원 맞추기
 
-                recognizer_output = recognizer(com_img)
+                with torch.no_grad():
+                    recognizer_output = recognizer(com_img)
+                    
                 batch_recognition_loss += cross_entropy_loss(recognizer_output, label_tensor)  # loss 반영 방법은 일단 모두 sum
 
             # 매칭된 이미지 수로 나누어 해당 배치의 평균 loss를 계산
@@ -364,7 +366,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
                 label_tensor = torch.tensor(labels[j], dtype=torch.long).unsqueeze(0).to(torch.device('cuda:0'))
 
-                recognizer_output = recognizer(com_img)
+                with torch.no_grad():
+                    recognizer_output = recognizer(com_img)
+                    
                 batch_recognition_loss += cross_entropy_loss(recognizer_output, label_tensor)  # loss 반영 방법은 일단 모두 sum
 
             # 매칭된 이미지 수로 나누어 해당 배치의 평균 loss를 계산
