@@ -160,7 +160,7 @@ class dataset_norm(Dataset):
             # class_add = 318  # SDdb-2 기준
 
             # class_base = str(int(directory.replace('\\', '/').split('/')[-2]) + class_add)  # 클래스 부분 추출
-            class_base = directory.replace('\\', '/').split('/')[-2]  # HKdb-1, SDdb-1 기준 클래스 부분 추출
+            class_base = str(directory.replace('\\', '/').split('/')[-2])  # HKdb-1, SDdb-1 기준 클래스 부분 추출
             classlist = csvfile.iloc[:, 2].str.contains(class_base, na=False)    # class 기준으로 찾기, 5개의 True
             # print(classlist)  # 잘 나옴
 
@@ -184,6 +184,8 @@ class dataset_norm(Dataset):
 
             # 두 리스트를 합쳐서 최종 리스트 생성
             final_list = authlist_values + impolist_values
+
+        print(final_list)
 
             if len(final_list) != (auth_matching_num + impo_matching_num):
                 print(f"Warning: final_list의 크기가 2가 아닙니다. 현재 크기: {len(final_list)}")
