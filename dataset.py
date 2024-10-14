@@ -184,12 +184,12 @@ class dataset_norm(Dataset):
 
             # 두 리스트를 합쳐서 최종 리스트 생성
             final_list = authlist_values + impolist_values
-
-        print(final_list)  # 디버깅 용
-
+            
             if len(final_list) != (auth_matching_num + impo_matching_num):
                 print(f"Warning: final_list의 크기가 2가 아닙니다. 현재 크기: {len(final_list)}")
                 print(f"final_list 내용: {final_list}")
+
+        print(final_list)  # 디버깅 용
 
         # 각 경로에서 이미지를 그레이스케일로 로드
         img = Image.open(self.img_list1[index]).convert("RGB")  # GT
