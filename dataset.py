@@ -189,6 +189,9 @@ class dataset_norm(Dataset):
                 print(f"Warning: final_list의 크기가 2가 아닙니다. 현재 크기: {len(final_list)}")
                 print(f"final_list 내용: {final_list}")
 
+        for item in final_list:   
+            item[1] = item[1].replace('\\', '/')
+        
         print(final_list)  # 디버깅 용
 
         # 각 경로에서 이미지를 그레이스케일로 로드
