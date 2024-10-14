@@ -114,7 +114,7 @@ class dataset_norm(Dataset):
         directory = self.img_list1[index]  # 학습에 사용하는 image의 경로 받아오기
         name_base = os.path.basename(directory)
         name_base = self.image_name_change(name_base)  # matching list와 다른 파일명 맞춰주기
-        # print(f"Checking for file: {name_base}")
+        print(f"Checking for file: {name_base}")  # 디버깅 용
 
         csvfile = pd.read_csv(self.csvfile, header=None)  # matching이 쓰일 csv 파일 불러오기
 
@@ -185,7 +185,7 @@ class dataset_norm(Dataset):
             # 두 리스트를 합쳐서 최종 리스트 생성
             final_list = authlist_values + impolist_values
 
-        print(final_list)
+        print(final_list)  # 디버깅 용
 
             if len(final_list) != (auth_matching_num + impo_matching_num):
                 print(f"Warning: final_list의 크기가 2가 아닙니다. 현재 크기: {len(final_list)}")
