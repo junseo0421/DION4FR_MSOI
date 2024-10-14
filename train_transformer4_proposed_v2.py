@@ -348,15 +348,15 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
                 composite_pil = torch.tensor(com_img).permute(2, 0, 1).to(dtype=torch.float32, device='cuda:0')
 
                 # if (epoch % 20) == 0:
-                save_dir = '/content/drive/MyDrive/rec_loss/output/HKdb-1/composite_images'  # 24.10.05 HKDB-2
-                com_save_dir = join(save_dir, f'epoch_{epoch}/')
-                os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
+                # save_dir = '/content/drive/MyDrive/rec_loss/output/HKdb-1/composite_images'  # 24.10.05 HKDB-2
+                # com_save_dir = join(save_dir, f'epoch_{epoch}/')
+                # os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
 
-                save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
-                save_path = os.path.join(com_save_dir, save_filename)
+                # save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
+                # save_path = os.path.join(com_save_dir, save_filename)
 
-                save_image(composite_pil, save_path)
-                print("valid_batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
+                # save_image(composite_pil, save_path)
+                # print("valid_batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
 
                 com_img = composite_pil.unsqueeze(0)  # (1, 3, 224, 224)
 
