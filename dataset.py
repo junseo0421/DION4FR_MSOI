@@ -114,7 +114,7 @@ class dataset_norm(Dataset):
         # 24.09.20 수정. mathcing label과 img name 받아오기
         directory = self.img_list1[index]  # 학습에 사용하는 image의 경로 받아오기
         name_base = os.path.basename(directory)
-        name_base = self.image_name_change(name_base)  # matching list와 다른 파일명 맞춰주기
+        # name_base = self.image_name_change(name_base)  # HKDB만!!!!!!!!! matching list와 다른 파일명 맞춰주기
         # print(f"Checking for file: {name_base}")  # 디버깅 용
 
         csvfile = pd.read_csv(self.csvfile, header=None)  # matching이 쓰일 csv 파일 불러오기
