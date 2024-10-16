@@ -81,7 +81,7 @@ class dataset_norm(Dataset):
         self.inputsize = inputsize
 
         # self.csvfile = '/content/drive/MyDrive/Recognition/Datasets/DS_TEST_bad(A)/registerds.csv'  # 24.10.10 HKDB-1
-        self.csvfile = '/content/drive/MyDrive/Recognition/Datasets/DS_SD_DB1_original_test/registerds.csv'  # 24.10.16 SDDB-1
+        self.csvfile = '/content/drive/MyDrive/Recognition/Datasets/DS_SD_DB1_origin_test/registerds.csv'  # 24.10.16 SDDB-1
 
         self.img_list1 = imglist1
         self.img_list2 = imglist2
