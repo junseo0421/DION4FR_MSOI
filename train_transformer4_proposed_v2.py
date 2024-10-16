@@ -420,10 +420,10 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
-    SAVE_LOG_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/logs_all'  # 24.10.10 HKdb-1
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/HKdb-1/checkpoints'  # 24.10.10 HKdb-1
-    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/Recognition/HKPU_A/checkpoints/3EPOCH.pt'  # 24.10.10 HKdb-1
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    SAVE_LOG_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/Recognition/SDU_A/checkpoints/3EPOCH.pt'  # 24.10.16 SDdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -435,10 +435,10 @@ if __name__ == '__main__':
 
         parser.add_argument('--train_batch_size', type=int, help='batch size of training data', default=2)
         parser.add_argument('--test_batch_size', type=int, help='batch size of testing data', default=16)
-        parser.add_argument('--epochs', type=int, help='number of epoches', default=2000)
+        parser.add_argument('--epochs', type=int, help='number of epoches', default=500)
         parser.add_argument('--lr', type=float, help='learning rate', default=0.0004)
         parser.add_argument('--alpha', type=float, help='learning rate decay for discriminator', default=0.1)
-        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=True)
+        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=False)
         parser.add_argument('--test_flag', type=bool, help='testing while training', default=False)
         parser.add_argument('--adjoint', type=bool, help='if use adjoint in odenet', default=True)
 
@@ -492,12 +492,12 @@ if __name__ == '__main__':
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
     base_dir = '/content'
     HKdb_dir = 'HK-db/HKdb_1'  # 24.10.10 HKDB-1
-    SDdb_dir = 'SD-db/SDdb_1'
+    SDdb_dir = 'SD-db/SDdb_1'  # 24.10.16 SDDB-1
 
     # 각 서브 폴더의 경로를 설정
-    original_dir = join(base_dir, 'original_images_split', HKdb_dir)
-    mask_dir = join(base_dir, 'mask_images_split_con', HKdb_dir)
-    clahe_dir = join(base_dir, 'clahe_images_split', HKdb_dir)
+    original_dir = join(base_dir, 'original_images_split', SDdb_dir)  # 24.10.16 SDDB-1
+    mask_dir = join(base_dir, 'mask_images_split_con', SDdb_dir)  # 24.10.16 SDDB-1
+    clahe_dir = join(base_dir, 'clahe_images_split', SDdb_dir)  # 24.10.16 SDDB-1
 
     # 각 디렉토리가 존재하는지 확인
     assert os.path.isdir(original_dir), f"Original directory does not exist: {original_dir}"
