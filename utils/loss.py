@@ -105,3 +105,23 @@ class IDMRFLoss(nn.Module):
         self.content_loss = reduce(lambda x, y: x+y, content_loss_list) * self.lambda_content
 
         return self.style_loss + self.content_loss
+
+# 24.10.25 Feature Similarity Loss (MSOI loss)
+class FS_Loss(nn.Module):
+    def __init__(self, featlayer=VGG19FeatLayer, device=0):
+        super(FS_Loss, self).__init__()
+        self.featlayer = featlayer(device=device)
+        self.L2_loss = nn.MSELoss()
+
+        self.multi_scale_layers = {'relu2_2': 0.5, 'relu3_2': 0.75, 'relu4_2': 1.0, 'relu5_2': 1.0}  # 후반 layer 일수록 고차원적이고 구조적인 정보 제공한다는 것 인지
+        self.FS_loss_weight = 1.0
+
+    def forward(self, gen, tar):
+        gen_vgg_feats = self.featlayer(gen)
+        tar_vgg_feats = self.featlayer(tar)
+
+        FS_loss_list = [self.multi_scale_layers[layer] * self.L2_loss(gen_vgg_feats[layer], tar_vgg_feats[layer]) for layer in self.multi_scale_layers]
+        # self.FS_loss = (reduce(lambda x, y: x+y, FS_loss_list) / len(self.multi_scale_layers)) * self.FS_loss_weight
+        self.FS_loss = reduce(lambda x, y: x + y, FS_loss_list) * self.FS_loss_weight
+
+        return self.FS_loss

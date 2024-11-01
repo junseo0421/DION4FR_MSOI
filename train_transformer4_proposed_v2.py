@@ -11,7 +11,7 @@ import os
 from os.path import join, basename, splitext
 from models.build4 import build_model, ImagePool
 # from models.Generator_former import Generator_former
-from utils.loss import IDMRFLoss
+from utils.loss import IDMRFLoss, FS_Loss
 from models.Discriminator_ml import MsImageDis
 # from utils.utils import gaussian_weight
 from tensorboardX import SummaryWriter
@@ -47,17 +47,15 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = True
 
 # Training
-def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer):  #24.09.19 recognizer
+def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 recognizer
     gen.train()
     dis.train()
-
-    # 24.09.19 CrossEntropyLoss for recognition
-    cross_entropy_loss = nn.CrossEntropyLoss().cuda(0)
 
     # mse = nn.MSELoss().cuda(0)
     mae = nn.L1Loss().cuda(0)  # 평균 절대 오차(MAE)를 사용하여 픽셀 간의 차이 계산
     mrf = IDMRFLoss(device=0)  # 텍스처 일관성 평가
-    ssim_loss = SSIM_loss().cuda(0)  # 구조적 유사성
+    # ssim_loss = SSIM_loss().cuda(0)  # 구조적 유사성
+    fs_loss = FS_Loss().cuda(0)
 
     acc_pixel_rec_loss = 0
     acc_feat_rec_loss = 0
@@ -65,8 +63,8 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
     acc_feat_cons_loss = 0
     acc_gen_adv_loss = 0
     acc_dis_adv_loss = 0
-    acc_ssim_loss = 0
-    acc_recognition_loss = 0  # 24.09.19 CrossEntropyLoss for recognition
+    # acc_ssim_loss = 0
+    acc_fs_loss = 0
 
     total_gen_loss = 0
 
@@ -117,84 +115,20 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
         ### dimension 맞춰주기 진행
         feat_rec_loss = mae(f_de, f_en.detach())  # 생성된 imgae의 feature map과 gt의 feature map 간의 L1 손실
 
-        ### SSIM loss
-        left_loss = ssim_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_ssim_loss = left_loss+right_loss
+        # ### SSIM loss
+        # left_loss = ssim_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_ssim_loss = left_loss+right_loss
 
-        # 24.09.19 Recognition Loss (Using the recognition model).
-        ## 나중에 가중치 조정 필요
-        recognition_loss = torch.tensor(0.0, device='cuda:0')  # 텐서로 초기화
-
-        for i in range(batchSize):
-            I_pred_single = I_pred[i].detach().permute(1, 2, 0).cpu().numpy()  # (h, w, c)
-
-            # print(f"현재 매칭 리스트: {random_matching_list}")  # 전체 리스트 출력
-
-            # 첫 번째 배치의 경우, 첫 번째 요소들의 리스트를 가져옴
-            labels = [label[i].item() for label, _ in random_matching_list]
-            matching_imgs = [matching_img[i] for _, matching_img in random_matching_list]
-            num_matching_images = len(matching_imgs)  # matching image의 수
-
-            # 매칭된 이미지 수가 2가 아닌 경우에만 출력
-            if len(matching_imgs) != 2:
-                print(f"Warning in Train: 현재 이미지 {i}의 매칭된 이미지 수가 2가 아닙니다. 매칭된 이미지 수: {len(matching_imgs)}")
-                print(f"매칭 이미지 리스트: {matching_imgs}")
-
-            # 배치 내의 각 이미지에 대한 recognition loss를 구함
-            batch_recognition_loss = torch.tensor(0.0, device='cuda:0')  # 각 배치의 손실을 담을 변수
-
-            for j, matching_img in enumerate(matching_imgs):
-                # print(f"label: {labels[j]}, matching_img: {matching_img}")  # 디버깅을 위해 출력
-
-                # matching_img가 파일 경로 문자열인지 확인
-                if isinstance(matching_img, str):
-                    # 문자열인 경우 이미지를 불러옴
-                    matching_img = matching_img.replace('\\', '/')
-                    matched_img = iio.imread(join('/content/DION4FR_modified/recognition/', matching_img))
-                else:
-                    print(f"Error: matching_img가 파일 경로 문자열이 아닙니다. 현재 값: {matching_img}")
-
-                com_img = make_composite_image(I_pred_single, matched_img)  # composite image 생성, (192, 192, 3) + (70, 180) → (224, 224, 3)
-
-                # composite image 저장 용
-                composite_pil = torch.tensor(com_img).permute(2, 0, 1).to(dtype=torch.float32, device='cuda:0')
-
-                # if (epoch % 20) == 0:
-                # save_dir = r'D:\DION4FR\rec_loss\output\HKdb-2\composite_images'  # 24.10.05 HKDB-2
-                # com_save_dir = join(save_dir, f'epoch_{epoch}/')
-                # os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
-                #
-                # save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
-                # save_path = os.path.join(com_save_dir, save_filename)
-                #
-                # save_image(composite_pil, save_path)
-                # print("batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
-
-                com_img = composite_pil.unsqueeze(0)  # (1, 3, 224, 224)
-
-                # com_img = torch.tensor(com_img).permute(2, 0, 1).unsqueeze(0).to(device='cuda:0')  # (1, 3, 224, 224), composite image 저장 시 주석 처리 필요
-
-                label_tensor = torch.tensor(labels[j], dtype=torch.long).unsqueeze(0).to(torch.device('cuda:0'))  # (0,) or (1,) 처럼 차원 맞추기
-
-                with torch.no_grad():
-                    recognizer_output = recognizer(com_img)
-                    
-                batch_recognition_loss += cross_entropy_loss(recognizer_output, label_tensor)  # loss 반영 방법은 일단 모두 sum
-
-            # 매칭된 이미지 수로 나누어 해당 배치의 평균 loss를 계산
-            batch_recognition_loss = batch_recognition_loss / num_matching_images
-
-            # 해당 배치의 평균 loss를 전체 recognition loss에 더함
-            recognition_loss += batch_recognition_loss
-
-        # 배치 전체에 대한 평균을 구하기 위해 배치 크기(batchSize)로 나눔
-        recognition_loss = recognition_loss / batchSize
+        # 24.10.29 Feature Similarity Loss (MSOI loss)
+        left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_fs_loss = left_loss + right_loss
 
         # ## Update Generator
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)  # generator에 대한 적대적 손실
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_ssim_loss + recognition_loss  # 24.09.19 Recognition Loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_fs_loss  # 24.09.19 Recognition Loss
         opt_gen.zero_grad()
         gen_loss.backward()
         opt_gen.step()
@@ -205,8 +139,8 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
         acc_feat_rec_loss += feat_rec_loss.data
         # acc_feat_cons_loss += feat_cons_loss.data
         acc_dis_adv_loss += dis_adv_loss.data
-        acc_ssim_loss += total_ssim_loss
-        acc_recognition_loss += recognition_loss.data # 24.09.19 Recognition Loss
+        # acc_ssim_loss += total_ssim_loss
+        acc_fs_loss += total_fs_loss.data  # 24.10.29 fs_loss
 
         total_gen_loss += gen_loss.data
 
@@ -225,10 +159,10 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer): 
     # writer.add_scalars('train/generator_loss', {'Feature Consistency Loss': acc_feat_cons_loss / len(train_loader.dataset)}, epoch)
     writer.add_scalars('train/generator_loss', {'Adversarial Loss': acc_gen_adv_loss / len(train_loader.dataset)},
                        epoch)
-    writer.add_scalars('train/generator_loss', {'Recognition Loss': acc_recognition_loss / len(train_loader.dataset)},
-                       epoch)  # 24.09.19 Recognition Loss
-    writer.add_scalars('train/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(train_loader.dataset)},
-                       epoch)
+    # writer.add_scalars('train/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(train_loader.dataset)},
+    #                    epoch)
+    writer.add_scalars('train/fs_loss', {'total gen Loss': acc_fs_loss / len(train_loader.dataset)},
+                       epoch)   # 24.10.29 fs_loss
     writer.add_scalars('train/total_gen_loss', {'total gen Loss': total_gen_loss / len(train_loader.dataset)},
                        epoch)
     writer.add_scalars('train/discriminator_loss', {'Adversarial Loss': acc_dis_adv_loss / len(train_loader.dataset)},
@@ -239,13 +173,11 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
     gen.eval()
     dis.eval()
 
-    # 24.09.19 CrossEntropyLoss for recognition
-    cross_entropy_loss = nn.CrossEntropyLoss().cuda(0)
-
     # mse = nn.MSELoss().cuda(0)
     mae = nn.L1Loss().cuda(0)
     mrf = IDMRFLoss(device=0)
-    ssim_loss = SSIM_loss().cuda(0)
+    # ssim_loss = SSIM_loss().cuda(0)
+    fs_loss = FS_Loss().cuda(0)
 
     acc_pixel_rec_loss = 0
     acc_feat_rec_loss = 0
@@ -253,12 +185,12 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
     acc_feat_cons_loss = 0
     acc_gen_adv_loss = 0
     acc_dis_adv_loss = 0
-    acc_ssim_loss = 0
-    acc_recognition_loss = 0  # 24.09.19 CrossEntropyLoss for recognition
+    # acc_ssim_loss = 0
+    acc_fs_loss = 0
 
     total_gen_loss = 0
 
-    for batch_idx, (gt, mask_img, random_matching_list) in enumerate(valid_loader):  # 24.09.19 labels 추가 / 관련 matching 수정 필요
+    for batch_idx, (gt, mask_img) in enumerate(valid_loader):  # 24.09.19 labels 추가 / 관련 matching 수정 필요
         batchSize = mask_img.shape[0]
         imgSize = mask_img.shape[2]
 
@@ -306,83 +238,19 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
         # ## Update Generator
 
-        ### SSIM loss
-        left_loss = ssim_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_ssim_loss = left_loss + right_loss
+        # ### SSIM loss
+        # left_loss = ssim_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_ssim_loss = left_loss + right_loss
 
-        # 24.09.19 Recognition Loss (Using the recognition model).
-        ## 나중에 가중치 조정 필요
-        recognition_loss = torch.tensor(0.0, device='cuda:0')  # 텐서로 초기화
-
-        for i in range(batchSize):
-            I_pred_single = I_pred[i].detach().permute(1, 2, 0).cpu().numpy()  # (h, w, c)
-
-            # print(f"현재 매칭 리스트: {random_matching_list}")  # 전체 리스트 출력
-
-            # 첫 번째 배치의 경우, 첫 번째 요소들의 리스트를 가져옴
-            labels = [label[i].item() for label, _ in random_matching_list]
-            matching_imgs = [matching_img[i] for _, matching_img in random_matching_list]
-            num_matching_images = len(matching_imgs)  # matching image의 수
-
-            # 매칭된 이미지 수가 2가 아닌 경우에만 출력
-            if len(matching_imgs) != 2:
-                print(f"Warning in Valid: 현재 이미지 {i}의 매칭된 이미지 수가 2가 아닙니다. 매칭된 이미지 수: {len(matching_imgs)}")
-                print(f"매칭 이미지 리스트: {matching_imgs}")
-
-            # 배치 내의 각 이미지에 대한 recognition loss를 구함
-            batch_recognition_loss = torch.tensor(0.0, device='cuda:0')  # 각 배치의 손실을 담을 변수
-
-            for j, matching_img in enumerate(matching_imgs):
-                # print(f"label: {labels[j]}, matching_img: {matching_img}")  # 디버깅을 위해 출력
-
-                # matching_img가 파일 경로 문자열인지 확인
-                if isinstance(matching_img, str):
-                    # 문자열인 경우 이미지를 불러옴
-                    matching_img = matching_img.replace('\\', '/')
-                    matched_img = iio.imread(join('/content/DION4FR_modified/recognition/', matching_img))
-                else:
-                    print(f"Error: matching_img가 파일 경로 문자열이 아닙니다. 현재 값: {matching_img}")
-
-                com_img = make_composite_image(I_pred_single, matched_img)  # composite image 생성, (192, 192, 3) + (70, 180) → (224, 224, 3)
-
-                # composite image 저장 용
-                composite_pil = torch.tensor(com_img).permute(2, 0, 1).to(dtype=torch.float32, device='cuda:0')
-
-                # if (epoch % 20) == 0:
-                # save_dir = '/content/drive/MyDrive/rec_loss/output/HKdb-1/composite_images'  # 24.10.05 HKDB-2
-                # com_save_dir = join(save_dir, f'epoch_{epoch}/')
-                # os.makedirs(com_save_dir, exist_ok=True)  # 디렉토리가 없으면 생성
-
-                # save_filename = f"{os.path.basename(matching_img)}_{j}th_label{labels[j]}.png"
-                # save_path = os.path.join(com_save_dir, save_filename)
-
-                # save_image(composite_pil, save_path)
-                # print("valid_batch", batch_idx, ",", i, "st", ":", j, "번째 save 완료!")
-
-                com_img = composite_pil.unsqueeze(0)  # (1, 3, 224, 224)
-
-                # com_img = torch.tensor(com_img).permute(2, 0, 1).unsqueeze(0).to(device='cuda:0')  # (1, 3, 224, 224), composite image 저장 시 주석 처리 필요
-
-                label_tensor = torch.tensor(labels[j], dtype=torch.long).unsqueeze(0).to(torch.device('cuda:0'))
-
-                with torch.no_grad():
-                    recognizer_output = recognizer(com_img)
-                    
-                batch_recognition_loss += cross_entropy_loss(recognizer_output, label_tensor)  # loss 반영 방법은 일단 모두 sum
-
-            # 매칭된 이미지 수로 나누어 해당 배치의 평균 loss를 계산
-            batch_recognition_loss = batch_recognition_loss / num_matching_images
-
-            # 해당 배치의 평균 loss를 전체 recognition loss에 더함
-            recognition_loss += batch_recognition_loss
-
-        # 배치 전체에 대한 평균을 구하기 위해 배치 크기(batchSize)로 나눔
-        recognition_loss = recognition_loss / batchSize
+        # 24.10.29 Feature Similarity Loss (MSOI loss)
+        left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_fs_loss = left_loss + right_loss
 
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_ssim_loss + recognition_loss  # 24.09.19 Recognition Loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_fs_loss
         opt_gen.zero_grad()
 
         acc_pixel_rec_loss += pixel_rec_loss.data
@@ -391,8 +259,8 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
         acc_feat_rec_loss += feat_rec_loss.data
         # acc_feat_cons_loss += feat_cons_loss.data
         acc_dis_adv_loss += dis_adv_loss.data
-        acc_ssim_loss += total_ssim_loss.data
-        acc_recognition_loss += recognition_loss.data  # 24.09.19 Recognition Loss
+        # acc_ssim_loss += total_ssim_loss.data
+        acc_fs_loss += total_fs_loss.data  # 24.10.29 fs_loss
 
         total_gen_loss += gen_loss.data
 
@@ -407,11 +275,11 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
     # writer.add_scalars('train/generator_loss', {'Feature Consistency Loss': acc_feat_cons_loss / len(train_loader.dataset)}, epoch)
     writer.add_scalars('valid/generator_loss', {'Adversarial Loss': acc_gen_adv_loss / len(valid_loader.dataset)},
                        epoch)
-    writer.add_scalars('valid/generator_loss', {'Recognition Loss': acc_recognition_loss / len(valid_loader.dataset)},
-                       epoch)  # 24.09.19 Recognition Loss
 
-    writer.add_scalars('valid/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(valid_loader.dataset)},
-                       epoch)
+    # writer.add_scalars('valid/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(valid_loader.dataset)},
+    #                    epoch)
+    writer.add_scalars('valid/fs_loss', {'total gen Loss': acc_fs_loss / len(valid_loader.dataset)},
+                       epoch)  # 24.10.29 fs_loss
     writer.add_scalars('valid/total_gen_loss', {'total gen Loss': total_gen_loss / len(valid_loader.dataset)},
                        epoch)
 
@@ -420,10 +288,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
-    SAVE_LOG_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/rec_loss/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
-    LOAD_REC_WEIGHT_DIR = '/content/drive/MyDrive/Recognition/SDU_A/checkpoints/3EPOCH.pt'  # 24.10.16 SDdb-1
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    SAVE_LOG_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -453,7 +320,6 @@ if __name__ == '__main__':
         parser.add_argument('--train_data_dir', type=str, help='directory of training data', default=TRAIN_DATA_DIR)
         # parser.add_argument('--test_data_dir', type=str, help='directory of testing data', default=TEST_DATA_DIR)
         # parser.add_argument('--gpu', type=str, help='gpu device', default='0')
-        parser.add_argument('--load_rec_weight_dir', type=str, help='directory of recognition model weight', default=LOAD_REC_WEIGHT_DIR)  # 24.09.19 Recognition weight dir
 
         opts = parser.parse_args()
         return opts
@@ -476,18 +342,6 @@ if __name__ == '__main__':
     config['DROP_PATH_RATE'] = 0.2
     config['SWIN.PATCH_NORM'] = True
     config['TRAIN.USE_CHECKPOINT'] = False
-
-    # 24.09.19 Load the pre-trained recognition model (Swin)
-    recognizer = timm.create_model('swin_small_patch4_window7_224.ms_in22k', pretrained=True)
-    num_ftrs = recognizer.head.fc.in_features
-    recognizer.head.fc = nn.Linear(num_ftrs, 2)
-    recognizer.load_state_dict(torch.load(args.load_rec_weight_dir))  # Load the trained weights
-    recognizer = recognizer.cuda()
-
-    # 24.09.19 Freeze the recognition model
-    for param in recognizer.parameters():
-        param.requires_grad = False
-    recognizer.eval()  # Set the recognizer to evaluation mode
 
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
     base_dir = '/content'
@@ -617,14 +471,14 @@ if __name__ == '__main__':
         print("----Start training[%d / %d]----" % (epoch, args.epochs))
         # train(gen, dis, fake_pool, real_pool, opt_gen, opt_dis, epoch, train_loader, writer)
 
-        train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer, recognizer)  # 24.09.25 recognizier
+        train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer)  # 24.09.25 recognizier
 
         # if args.test_flag:
         #     print("----Start testing[%d]----" % epoch)
         #     test(gen, dis, epoch, test_loader, writer)
 
         # Update the valid function to iterate over the tqdm-wrapped loader
-        valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer)  # 24.09.25 recognizier
+        valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer)  # 24.09.25 recognizier
 
         # Save the model weight every 10 epochs
         if (epoch % 10) == 0:
