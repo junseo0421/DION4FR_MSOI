@@ -11,7 +11,7 @@ import os
 from os.path import join, basename, splitext
 from models.build4 import build_model, ImagePool
 # from models.Generator_former import Generator_former
-from utils.loss import IDMRFLoss, FS_Loss
+from utils.loss import *
 from models.Discriminator_ml import MsImageDis
 # from utils.utils import gaussian_weight
 from tensorboardX import SummaryWriter
@@ -21,15 +21,10 @@ from datetime import datetime
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 import random
 from loss import *
-from recognition.utility.datasetutil import *
-import timm
-import pandas as pd  # 24.10.02 수정
-from PIL import Image, ImageDraw, ImageFont
-import imageio.v3 as iio  # 이미지 읽기를 위한 라이브러리
+import torchvision.models as models
 
 from utils.utils import *
 
-from torchvision.utils import save_image
 
 # this version is with normlized input with mean and std, all layers are normalized,
 # change the order of the 'make_layer' with norm-activate-conv,and use the multi-scal D
@@ -55,7 +50,10 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     mae = nn.L1Loss().cuda(0)  # 평균 절대 오차(MAE)를 사용하여 픽셀 간의 차이 계산
     mrf = IDMRFLoss(device=0)  # 텍스처 일관성 평가
     # ssim_loss = SSIM_loss().cuda(0)  # 구조적 유사성
-    fs_loss = FS_Loss().cuda(0)
+    # fs_loss = FS_Loss().cuda(0)
+    # perceptual_loss = Perceptual_loss().cuda(0)
+    content_loss = ContentLoss().cuda(0)
+    style_loss = StyleLoss().cuda(0)
 
     acc_pixel_rec_loss = 0
     acc_feat_rec_loss = 0
@@ -64,14 +62,17 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     acc_gen_adv_loss = 0
     acc_dis_adv_loss = 0
     # acc_ssim_loss = 0
-    acc_fs_loss = 0
+    # acc_fs_loss = 0
+
+    acc_style_loss = 0
+    acc_content_loss = 0
+    acc_perceptual_loss = 0
 
     total_gen_loss = 0
 
-    for batch_idx, (gt, mask_img, random_matching_list) in enumerate(train_loader):  # 24.09.20 수정
+    for batch_idx, (gt, mask_img) in enumerate(train_loader):  # 24.09.20 수정
         batchSize = mask_img.shape[0]
         imgSize = mask_img.shape[2]
-        # print(batch_idx, ":", random_matching_list)
 
         # gt, mask_img, iner_img = Variable(gt).cuda(0), Variable(mask_img.type(torch.FloatTensor)).cuda(0), Variable(iner_img).cuda(0)
         gt, mask_img = Variable(gt).cuda(0), Variable(mask_img.type(torch.FloatTensor)).cuda(0)
@@ -120,15 +121,26 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
         # right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         # total_ssim_loss = left_loss+right_loss
 
-        # 24.10.29 Feature Similarity Loss (MSOI loss)
-        left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_fs_loss = left_loss + right_loss
+        # # 24.10.29 Feature Similarity Loss (MSOI loss)
+        # left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_fs_loss = left_loss + right_loss
+
+        # 24.11.04 Perceptual Loss
+        content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_content_loss = content_left_loss + content_right_loss
+
+        style_left_loss = style_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        style_right_loss = style_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_style_loss = style_left_loss + style_right_loss
+
+        total_perceptual_loss = total_content_loss + total_style_loss
 
         # ## Update Generator
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)  # generator에 대한 적대적 손실
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_fs_loss  # 24.09.19 Recognition Loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
         opt_gen.zero_grad()
         gen_loss.backward()
         opt_gen.step()
@@ -140,7 +152,10 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
         # acc_feat_cons_loss += feat_cons_loss.data
         acc_dis_adv_loss += dis_adv_loss.data
         # acc_ssim_loss += total_ssim_loss
-        acc_fs_loss += total_fs_loss.data  # 24.10.29 fs_loss
+
+        acc_style_loss += total_style_loss.data
+        acc_content_loss += total_content_loss.data
+        acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
 
         total_gen_loss += gen_loss.data
 
@@ -161,15 +176,21 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
                        epoch)
     # writer.add_scalars('train/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(train_loader.dataset)},
     #                    epoch)
-    writer.add_scalars('train/fs_loss', {'total gen Loss': acc_fs_loss / len(train_loader.dataset)},
-                       epoch)   # 24.10.29 fs_loss
+    # writer.add_scalars('train/fs_loss', {'total gen Loss': acc_fs_loss / len(train_loader.dataset)},
+    #                    epoch)   # 24.10.29 fs_loss
+    writer.add_scalars('train/style_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
+    writer.add_scalars('train/content_loss', {'Content Loss': acc_content_loss / len(train_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
+    writer.add_scalars('train/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(train_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('train/total_gen_loss', {'total gen Loss': total_gen_loss / len(train_loader.dataset)},
                        epoch)
     writer.add_scalars('train/discriminator_loss', {'Adversarial Loss': acc_dis_adv_loss / len(train_loader.dataset)},
                        epoch)
 
 # Training
-def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
+def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     gen.eval()
     dis.eval()
 
@@ -177,7 +198,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
     mae = nn.L1Loss().cuda(0)
     mrf = IDMRFLoss(device=0)
     # ssim_loss = SSIM_loss().cuda(0)
-    fs_loss = FS_Loss().cuda(0)
+    # perceptual_loss = Perceptual_loss().cuda(0)
+    content_loss = ContentLoss().cuda(0)
+    style_loss = StyleLoss().cuda(0)
 
     acc_pixel_rec_loss = 0
     acc_feat_rec_loss = 0
@@ -186,7 +209,11 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
     acc_gen_adv_loss = 0
     acc_dis_adv_loss = 0
     # acc_ssim_loss = 0
-    acc_fs_loss = 0
+    # acc_fs_loss = 0
+
+    acc_style_loss = 0
+    acc_content_loss = 0
+    acc_perceptual_loss = 0
 
     total_gen_loss = 0
 
@@ -243,14 +270,25 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
         # right_loss = ssim_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         # total_ssim_loss = left_loss + right_loss
 
-        # 24.10.29 Feature Similarity Loss (MSOI loss)
-        left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_fs_loss = left_loss + right_loss
+        # # 24.10.29 Feature Similarity Loss (MSOI loss)
+        # left_loss = fs_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_fs_loss = left_loss + right_loss
+
+        # 24.11.04 Perceptual Loss
+        content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_content_loss = content_left_loss + content_right_loss
+
+        style_left_loss = style_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        style_right_loss = style_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        total_style_loss = style_left_loss + style_right_loss
+
+        total_perceptual_loss = total_content_loss + total_style_loss
 
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_fs_loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
         opt_gen.zero_grad()
 
         acc_pixel_rec_loss += pixel_rec_loss.data
@@ -260,7 +298,10 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
         # acc_feat_cons_loss += feat_cons_loss.data
         acc_dis_adv_loss += dis_adv_loss.data
         # acc_ssim_loss += total_ssim_loss.data
-        acc_fs_loss += total_fs_loss.data  # 24.10.29 fs_loss
+
+        acc_style_loss += total_style_loss.data
+        acc_content_loss += total_content_loss.data
+        acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
 
         total_gen_loss += gen_loss.data
 
@@ -278,8 +319,14 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
     # writer.add_scalars('valid/SSIM_loss', {'total gen Loss': acc_ssim_loss / len(valid_loader.dataset)},
     #                    epoch)
-    writer.add_scalars('valid/fs_loss', {'total gen Loss': acc_fs_loss / len(valid_loader.dataset)},
-                       epoch)  # 24.10.29 fs_loss
+    # writer.add_scalars('valid/fs_loss', {'total gen Loss': acc_fs_loss / len(valid_loader.dataset)},
+    #                    epoch)  # 24.10.29 fs_loss
+    writer.add_scalars('valid/style_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
+    writer.add_scalars('valid/content_loss', {'Content Loss': acc_content_loss / len(valid_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
+    writer.add_scalars('valid/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(valid_loader.dataset)},
+                       epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('valid/total_gen_loss', {'total gen Loss': total_gen_loss / len(valid_loader.dataset)},
                        epoch)
 
@@ -288,9 +335,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer, recognizer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
-    SAVE_LOG_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/msoi/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -302,7 +349,7 @@ if __name__ == '__main__':
 
         parser.add_argument('--train_batch_size', type=int, help='batch size of training data', default=2)
         parser.add_argument('--test_batch_size', type=int, help='batch size of testing data', default=16)
-        parser.add_argument('--epochs', type=int, help='number of epoches', default=500)
+        parser.add_argument('--epochs', type=int, help='number of epoches', default=1000)
         parser.add_argument('--lr', type=float, help='learning rate', default=0.0004)
         parser.add_argument('--alpha', type=float, help='learning rate decay for discriminator', default=0.1)
         parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=False)

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.layer import VGG19FeatLayer
+from models.layer import *
 from functools import reduce
 import numpy as np
 
@@ -106,22 +106,112 @@ class IDMRFLoss(nn.Module):
 
         return self.style_loss + self.content_loss
 
-# 24.10.25 Feature Similarity Loss (MSOI loss)
-class FS_Loss(nn.Module):
-    def __init__(self, featlayer=VGG19FeatLayer, device=0):
-        super(FS_Loss, self).__init__()
-        self.featlayer = featlayer(device=device)
-        self.L2_loss = nn.MSELoss()
+class ContentLoss(nn.Module):
+    def __init__(self, weights=[1.0, 1.0, 1.0, 1.0, 1.0], content_total_weight=0.1):
+        super(ContentLoss, self).__init__()
+        self.add_module('vgg', VGG19())
+        self.criterion = torch.nn.L1Loss()
+        self.weights = weights
+        self.content_total_weight = content_total_weight
 
-        self.multi_scale_layers = {'relu2_2': 0.5, 'relu3_2': 0.75, 'relu4_2': 1.0, 'relu5_2': 1.0}  # 후반 layer 일수록 고차원적이고 구조적인 정보 제공한다는 것 인지
-        self.FS_loss_weight = 1.0
+    def __call__(self, x, y):
+        # Compute features
+        x_vgg, y_vgg = self.vgg(x), self.vgg(y)
 
-    def forward(self, gen, tar):
-        gen_vgg_feats = self.featlayer(gen)
-        tar_vgg_feats = self.featlayer(tar)
+        content_loss = 0.0
+        content_loss += self.weights[0] * self.criterion(x_vgg['relu1_1'], y_vgg['relu1_1'])
+        content_loss += self.weights[1] * self.criterion(x_vgg['relu2_1'], y_vgg['relu2_1'])
+        content_loss += self.weights[2] * self.criterion(x_vgg['relu3_1'], y_vgg['relu3_1'])
+        content_loss += self.weights[3] * self.criterion(x_vgg['relu4_1'], y_vgg['relu4_1'])
+        content_loss += self.weights[4] * self.criterion(x_vgg['relu5_1'], y_vgg['relu5_1'])
 
-        FS_loss_list = [self.multi_scale_layers[layer] * self.L2_loss(gen_vgg_feats[layer], tar_vgg_feats[layer]) for layer in self.multi_scale_layers]
-        # self.FS_loss = (reduce(lambda x, y: x+y, FS_loss_list) / len(self.multi_scale_layers)) * self.FS_loss_weight
-        self.FS_loss = reduce(lambda x, y: x + y, FS_loss_list) * self.FS_loss_weight
+        return content_loss * self.content_total_weight
 
-        return self.FS_loss
+class StyleLoss(nn.Module):
+    def __init__(self, style_total_weight=100.0):
+        super(StyleLoss, self).__init__()
+        self.add_module('vgg', VGG19())
+        self.criterion = torch.nn.L1Loss()
+        self.style_total_weight = style_total_weight
+
+    def compute_gram(self, x):
+        b, ch, h, w = x.size()
+        f = x.view(b, ch, w * h)
+        f_T = f.transpose(1, 2)
+        G = f.bmm(f_T) / (h * w * ch)
+        return G
+
+    def __call__(self, x, y):
+        # Compute features
+        x_vgg, y_vgg = self.vgg(x), self.vgg(y)
+
+        # Compute loss
+        style_loss = 0.0
+        style_loss += self.criterion(self.compute_gram(x_vgg['relu2_2']), self.compute_gram(y_vgg['relu2_2']))
+        style_loss += self.criterion(self.compute_gram(x_vgg['relu3_4']), self.compute_gram(y_vgg['relu3_4']))
+        style_loss += self.criterion(self.compute_gram(x_vgg['relu4_4']), self.compute_gram(y_vgg['relu4_4']))
+        style_loss += self.criterion(self.compute_gram(x_vgg['relu5_2']), self.compute_gram(y_vgg['relu5_2']))
+
+        return style_loss * self.style_total_weight
+
+# # 24.10.25 Feature Similarity Loss (MSOI loss)
+# class FS_Loss(nn.Module):
+#     def __init__(self, featlayer=VGG19FeatLayer, device=0):
+#         super(FS_Loss, self).__init__()
+#         self.featlayer = featlayer(device=device)
+#         self.L2_loss = nn.MSELoss()
+#
+#         self.multi_scale_layers = {'relu2_2': 1.0, 'relu3_2': 1.0, 'relu4_2': 1.0, 'relu5_2': 1.0}  # 후반 layer 일수록 고차원적이고 구조적인 정보 제공한다는 것 인지
+#         self.FS_loss_weight = 1.0
+#
+#     def forward(self, gen, tar):
+#         gen_vgg_feats = self.featlayer(gen)
+#         tar_vgg_feats = self.featlayer(tar)
+#
+#         FS_loss_list = [self.multi_scale_layers[layer] * self.L2_loss(gen_vgg_feats[layer], tar_vgg_feats[layer]) for layer in self.multi_scale_layers]
+#         # self.FS_loss = (reduce(lambda x, y: x+y, FS_loss_list) / len(self.multi_scale_layers)) * self.FS_loss_weight
+#         self.FS_loss = reduce(lambda x, y: x + y, FS_loss_list) * self.FS_loss_weight
+#
+#         return self.FS_loss
+
+# class Perceptual_loss(nn.Module):
+#     def __init__(self, featlayer=VGG16FeatLayer, device=0, style_weight=1.0, content_weight=1.0):
+#         super(Perceptual_loss, self).__init__()
+#         self.featlayer = featlayer(device=device)
+#         # self.L2_loss = nn.MSELoss()
+#         self.L1_loss = nn.L1Loss()
+#         self.gram_matrix = GramMatrix()
+#
+#         self.style_loss_layers = {'relu1_2': 1.0, 'relu2_2': 1.0, 'relu3_3': 1.0, 'relu4_3': 1.0}  # 후반 layer 일수록 고차원적이고 구조적인 정보 제공한다는 것 인지
+#         self.content_loss_layers = {'relu3_3': 1.0}
+#
+#         self.style_loss_weight = style_weight
+#         self.content_loss_weight = content_weight
+#
+#     def forward(self, gen, tar):
+#         gen_vgg_feats = self.featlayer(gen)
+#         tar_vgg_feats = self.featlayer(tar)
+#
+#         style_loss_list = [
+#             self.L1_loss(self.gram_matrix(gen_vgg_feats[layer]), self.gram_matrix(tar_vgg_feats[layer])) * self.style_loss_layers[layer] for layer in self.style_loss_layers
+#         ]
+#
+#         self.style_loss = sum(style_loss_list) * self.style_loss_weight
+#
+#         content_loss_list = [
+#             self.L1_loss(gen_vgg_feats[layer], tar_vgg_feats[layer]) * self.content_loss_layers[layer] for layer in self.content_loss_layers
+#         ]
+#
+#         self.content_loss = sum(content_loss_list) * self.content_loss_weight
+#
+#         self.Perceptual_loss = self.style_loss + self.content_loss
+#
+#         return self.Perceptual_loss
+#
+# class GramMatrix(nn.Module):
+#     def forward(self, input):
+#         b, c, h, w = input.size()
+#         F = input.view(b, c, h * w)
+#         G = torch.bmm(F, F.transpose(1, 2))
+#         G.div_(h * w * c)
+#         return G
