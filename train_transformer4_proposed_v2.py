@@ -178,9 +178,9 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     #                    epoch)
     # writer.add_scalars('train/fs_loss', {'total gen Loss': acc_fs_loss / len(train_loader.dataset)},
     #                    epoch)   # 24.10.29 fs_loss
-    writer.add_scalars('train/style_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
+    writer.add_scalars('train/perceptual_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('train/content_loss', {'Content Loss': acc_content_loss / len(train_loader.dataset)},
+    writer.add_scalars('train/perceptual_loss', {'Content Loss': acc_content_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('train/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
@@ -321,9 +321,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     #                    epoch)
     # writer.add_scalars('valid/fs_loss', {'total gen Loss': acc_fs_loss / len(valid_loader.dataset)},
     #                    epoch)  # 24.10.29 fs_loss
-    writer.add_scalars('valid/style_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
+    writer.add_scalars('valid/perceptual_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('valid/content_loss', {'Content Loss': acc_content_loss / len(valid_loader.dataset)},
+    writer.add_scalars('valid/perceptual_loss', {'Content Loss': acc_content_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('valid/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss

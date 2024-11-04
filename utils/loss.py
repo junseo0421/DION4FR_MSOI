@@ -107,7 +107,7 @@ class IDMRFLoss(nn.Module):
         return self.style_loss + self.content_loss
 
 class ContentLoss(nn.Module):
-    def __init__(self, weights=[1.0, 1.0, 1.0, 1.0, 1.0], content_total_weight=0.1):
+    def __init__(self, weights=[1.0, 1.0, 1.0, 1.0, 1.0], content_total_weight=0.5):
         super(ContentLoss, self).__init__()
         self.add_module('vgg', VGG19())
         self.criterion = torch.nn.L1Loss()
@@ -128,7 +128,7 @@ class ContentLoss(nn.Module):
         return content_loss * self.content_total_weight
 
 class StyleLoss(nn.Module):
-    def __init__(self, style_total_weight=100.0):
+    def __init__(self, style_total_weight=500.0):
         super(StyleLoss, self).__init__()
         self.add_module('vgg', VGG19())
         self.criterion = torch.nn.L1Loss()
