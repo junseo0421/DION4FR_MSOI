@@ -335,9 +335,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
-    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/logs_all'  # 24.10.16 SDdb-1
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  # 24.10.16 SDdb-1
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/checkpoints'  # 24.11.04 HKdb-2
+    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/logs_all'  # 24.11.04 HKdb-2
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/checkpoints'  # 24.11.04 HKdb-2
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -392,13 +392,13 @@ if __name__ == '__main__':
 
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
     base_dir = '/content'
-    HKdb_dir = 'HK-db/HKdb_1'  # 24.10.10 HKDB-1
+    HKdb_dir = 'HK-db/HKdb_2'  # 24.11.04 HKDB-2
     SDdb_dir = 'SD-db/SDdb_1'  # 24.10.16 SDDB-1
 
     # 각 서브 폴더의 경로를 설정
-    original_dir = join(base_dir, 'original_images_split', SDdb_dir)  # 24.10.16 SDDB-1
-    mask_dir = join(base_dir, 'mask_images_split_con', SDdb_dir)  # 24.10.16 SDDB-1
-    clahe_dir = join(base_dir, 'clahe_images_split', SDdb_dir)  # 24.10.16 SDDB-1
+    original_dir = join(base_dir, 'original_images_split', HKdb_dir)  
+    mask_dir = join(base_dir, 'mask_images_split_con', HKdb_dir)  
+    clahe_dir = join(base_dir, 'clahe_images_split', HKdb_dir)  # 24.11.04 HKDB-2
 
     # 각 디렉토리가 존재하는지 확인
     assert os.path.isdir(original_dir), f"Original directory does not exist: {original_dir}"
@@ -518,14 +518,14 @@ if __name__ == '__main__':
         print("----Start training[%d / %d]----" % (epoch, args.epochs))
         # train(gen, dis, fake_pool, real_pool, opt_gen, opt_dis, epoch, train_loader, writer)
 
-        train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer)  # 24.09.25 recognizier
+        train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer) 
 
         # if args.test_flag:
         #     print("----Start testing[%d]----" % epoch)
         #     test(gen, dis, epoch, test_loader, writer)
 
         # Update the valid function to iterate over the tqdm-wrapped loader
-        valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer)  # 24.09.25 recognizier
+        valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer)
 
         # Save the model weight every 10 epochs
         if (epoch % 10) == 0:
