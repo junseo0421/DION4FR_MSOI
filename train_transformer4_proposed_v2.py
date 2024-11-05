@@ -51,8 +51,8 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     mrf = IDMRFLoss(device=0)  # 텍스처 일관성 평가
     # ssim_loss = SSIM_loss().cuda(0)  # 구조적 유사성
     # fs_loss = FS_Loss().cuda(0)
-    # perceptual_loss = Perceptual_loss().cuda(0)
-    content_loss = ContentLoss().cuda(0)
+
+    # content_loss = ContentLoss().cuda(0)
     style_loss = StyleLoss().cuda(0)
 
     acc_pixel_rec_loss = 0
@@ -65,8 +65,8 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     # acc_fs_loss = 0
 
     acc_style_loss = 0
-    acc_content_loss = 0
-    acc_perceptual_loss = 0
+    # acc_content_loss = 0
+    # acc_perceptual_loss = 0
 
     total_gen_loss = 0
 
@@ -126,21 +126,24 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
         # right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         # total_fs_loss = left_loss + right_loss
 
-        # 24.11.04 Perceptual Loss
-        content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_content_loss = content_left_loss + content_right_loss
+        # # 24.11.04 Perceptual Loss
+        # content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_content_loss = content_left_loss + content_right_loss
 
         style_left_loss = style_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
         style_right_loss = style_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         total_style_loss = style_left_loss + style_right_loss
 
-        total_perceptual_loss = total_content_loss + total_style_loss
+        # total_perceptual_loss = total_content_loss + total_style_loss
 
         # ## Update Generator
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)  # generator에 대한 적대적 손실
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
+
+        # gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_style_loss  # 24.11.04 Perceptual Loss
+
         opt_gen.zero_grad()
         gen_loss.backward()
         opt_gen.step()
@@ -154,8 +157,8 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
         # acc_ssim_loss += total_ssim_loss
 
         acc_style_loss += total_style_loss.data
-        acc_content_loss += total_content_loss.data
-        acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
+        # acc_content_loss += total_content_loss.data
+        # acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
 
         total_gen_loss += gen_loss.data
 
@@ -178,12 +181,20 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     #                    epoch)
     # writer.add_scalars('train/fs_loss', {'total gen Loss': acc_fs_loss / len(train_loader.dataset)},
     #                    epoch)   # 24.10.29 fs_loss
+
+    # writer.add_scalars('train/perceptual_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+    # writer.add_scalars('train/perceptual_loss', {'Content Loss': acc_content_loss / len(train_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+    # writer.add_scalars('train/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(train_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+
     writer.add_scalars('train/perceptual_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('train/perceptual_loss', {'Content Loss': acc_content_loss / len(train_loader.dataset)},
+    writer.add_scalars('train/generator_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('train/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(train_loader.dataset)},
-                       epoch)  # 24.11.04 perceptual_loss
+
+
     writer.add_scalars('train/total_gen_loss', {'total gen Loss': total_gen_loss / len(train_loader.dataset)},
                        epoch)
     writer.add_scalars('train/discriminator_loss', {'Adversarial Loss': acc_dis_adv_loss / len(train_loader.dataset)},
@@ -199,7 +210,7 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     mrf = IDMRFLoss(device=0)
     # ssim_loss = SSIM_loss().cuda(0)
     # perceptual_loss = Perceptual_loss().cuda(0)
-    content_loss = ContentLoss().cuda(0)
+    # content_loss = ContentLoss().cuda(0)
     style_loss = StyleLoss().cuda(0)
 
     acc_pixel_rec_loss = 0
@@ -212,8 +223,8 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     # acc_fs_loss = 0
 
     acc_style_loss = 0
-    acc_content_loss = 0
-    acc_perceptual_loss = 0
+    # acc_content_loss = 0
+    # acc_perceptual_loss = 0
 
     total_gen_loss = 0
 
@@ -275,20 +286,23 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
         # right_loss = fs_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         # total_fs_loss = left_loss + right_loss
 
-        # 24.11.04 Perceptual Loss
-        content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
-        content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
-        total_content_loss = content_left_loss + content_right_loss
+        # # 24.11.04 Perceptual Loss
+        # content_left_loss = content_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
+        # content_right_loss = content_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
+        # total_content_loss = content_left_loss + content_right_loss
 
         style_left_loss = style_loss(I_pred[:, :, :, 0:32], I_pred[:, :, :, 32:64])
         style_right_loss = style_loss(I_pred[:, :, :, 160:192], I_pred[:, :, :, 128:160])
         total_style_loss = style_left_loss + style_right_loss
 
-        total_perceptual_loss = total_content_loss + total_style_loss
+        # total_perceptual_loss = total_content_loss + total_style_loss
 
         gen_adv_loss = dis.calc_gen_loss(I_pred, gt)
         # gen_loss = pixel_rec_loss + gen_adv_loss + mrf_loss.cuda(0) + feat_rec_loss
-        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
+
+        # gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_perceptual_loss  # 24.11.04 Perceptual Loss
+        gen_loss = pixel_rec_loss + gen_adv_loss + feat_rec_loss + mrf_loss.cuda(0) + total_style_loss  # 24.11.04 Perceptual Loss
+
         opt_gen.zero_grad()
 
         acc_pixel_rec_loss += pixel_rec_loss.data
@@ -300,8 +314,8 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
         # acc_ssim_loss += total_ssim_loss.data
 
         acc_style_loss += total_style_loss.data
-        acc_content_loss += total_content_loss.data
-        acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
+        # acc_content_loss += total_content_loss.data
+        # acc_perceptual_loss += total_perceptual_loss.data  # 24.11.04 perceptual_loss
 
         total_gen_loss += gen_loss.data
 
@@ -321,15 +335,22 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     #                    epoch)
     # writer.add_scalars('valid/fs_loss', {'total gen Loss': acc_fs_loss / len(valid_loader.dataset)},
     #                    epoch)  # 24.10.29 fs_loss
+
+    # writer.add_scalars('valid/perceptual_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+    # writer.add_scalars('valid/perceptual_loss', {'Content Loss': acc_content_loss / len(valid_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+    # writer.add_scalars('valid/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(valid_loader.dataset)},
+    #                    epoch)  # 24.11.04 perceptual_loss
+    
     writer.add_scalars('valid/perceptual_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('valid/perceptual_loss', {'Content Loss': acc_content_loss / len(valid_loader.dataset)},
+    writer.add_scalars('valid/generator_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
-    writer.add_scalars('valid/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(valid_loader.dataset)},
-                       epoch)  # 24.11.04 perceptual_loss
+    
+    
     writer.add_scalars('valid/total_gen_loss', {'total gen Loss': total_gen_loss / len(valid_loader.dataset)},
                        epoch)
-
     writer.add_scalars('valid/discriminator_loss', {'Adversarial Loss': acc_dis_adv_loss / len(valid_loader.dataset)},
                        epoch)
 
@@ -352,7 +373,7 @@ if __name__ == '__main__':
         parser.add_argument('--epochs', type=int, help='number of epoches', default=700)
         parser.add_argument('--lr', type=float, help='learning rate', default=0.0004)
         parser.add_argument('--alpha', type=float, help='learning rate decay for discriminator', default=0.1)
-        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=True)
+        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=False)
         parser.add_argument('--test_flag', type=bool, help='testing while training', default=False)
         parser.add_argument('--adjoint', type=bool, help='if use adjoint in odenet', default=True)
 
