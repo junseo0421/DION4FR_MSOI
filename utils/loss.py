@@ -129,7 +129,7 @@ class ContentLoss(nn.Module):
         return content_loss * self.content_total_weight
 
 class StyleLoss(nn.Module):
-    def __init__(self, style_total_weight=2000.0):
+    def __init__(self, style_total_weight=4000.0):
         super(StyleLoss, self).__init__()
         self.add_module('vgg', VGG19())
         self.criterion = torch.nn.L1Loss()
