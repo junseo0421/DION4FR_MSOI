@@ -356,9 +356,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/checkpoints'  # 24.11.04 HKdb-2
-    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/logs_all'  # 24.11.04 HKdb-2
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/checkpoints'  # 24.11.04 HKdb-2
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/checkpoints'  
+    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/logs_all'  
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/checkpoints'  # 24.11.09 HKdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -373,7 +373,7 @@ if __name__ == '__main__':
         parser.add_argument('--epochs', type=int, help='number of epoches', default=700)
         parser.add_argument('--lr', type=float, help='learning rate', default=0.0004)
         parser.add_argument('--alpha', type=float, help='learning rate decay for discriminator', default=0.1)
-        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=True)
+        parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=False)  # pretrain !!!
         parser.add_argument('--test_flag', type=bool, help='testing while training', default=False)
         parser.add_argument('--adjoint', type=bool, help='if use adjoint in odenet', default=True)
 
@@ -413,13 +413,13 @@ if __name__ == '__main__':
 
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
     base_dir = '/content'
-    HKdb_dir = 'HK-db/HKdb_2'  # 24.11.04 HKDB-2
+    HKdb_dir = 'HK-db/HKdb_1'  # 24.11.09 HKDB-1
     SDdb_dir = 'SD-db/SDdb_1'  # 24.10.16 SDDB-1
 
     # 각 서브 폴더의 경로를 설정
     original_dir = join(base_dir, 'original_images_split', HKdb_dir)  
     mask_dir = join(base_dir, 'mask_images_split_con', HKdb_dir)  
-    clahe_dir = join(base_dir, 'clahe_images_split', HKdb_dir)  # 24.11.04 HKDB-2
+    clahe_dir = join(base_dir, 'clahe_images_split', HKdb_dir)  # 24.11.09 HKDB-1
 
     # 각 디렉토리가 존재하는지 확인
     assert os.path.isdir(original_dir), f"Original directory does not exist: {original_dir}"
