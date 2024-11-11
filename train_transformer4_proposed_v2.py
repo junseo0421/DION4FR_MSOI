@@ -356,9 +356,9 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
 
 if __name__ == '__main__':
 
-    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/checkpoints'  
-    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/logs_all'  
-    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/checkpoints'  # 24.11.09 HKdb-1
+    SAVE_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  
+    SAVE_LOG_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/logs_all'  
+    LOAD_WEIGHT_DIR = '/content/drive/MyDrive/perceptual/output/SDdb-1/checkpoints'  # 24.11.12 SDdb-1
     TRAIN_DATA_DIR = ''
 
     seed_everything(2024)  # Seed 고정
@@ -417,9 +417,9 @@ if __name__ == '__main__':
     SDdb_dir = 'SD-db/SDdb_1'  # 24.10.16 SDDB-1
 
     # 각 서브 폴더의 경로를 설정
-    original_dir = join(base_dir, 'original_images_split', HKdb_dir)  
-    mask_dir = join(base_dir, 'mask_images_split_con', HKdb_dir)  
-    clahe_dir = join(base_dir, 'clahe_images_split', HKdb_dir)  # 24.11.09 HKDB-1
+    original_dir = join(base_dir, 'original_images_split', SDdb_dir)  
+    mask_dir = join(base_dir, 'mask_images_split_con', SDdb_dir)  
+    clahe_dir = join(base_dir, 'clahe_images_split', SDdb_dir)  # 24.11.12 SDDB-1
 
     # 각 디렉토리가 존재하는지 확인
     assert os.path.isdir(original_dir), f"Original directory does not exist: {original_dir}"
@@ -499,7 +499,7 @@ if __name__ == '__main__':
 
     # Load pre-trained weight
     if args.load_pretrain:
-        start_epoch = 350
+        start_epoch = 140
         print(f'Loading model weight...at epoch {start_epoch}')
         gen.load_state_dict(torch.load(join(args.load_weight_dir, f'Gen_former_{start_epoch}.pt')))
         dis.load_state_dict(torch.load(join(args.load_weight_dir, f'Dis_former_{start_epoch}.pt')))
