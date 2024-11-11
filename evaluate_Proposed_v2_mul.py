@@ -66,11 +66,11 @@ def evaluate(gen, eval_loader, rand_pair, save_dir):
 
 if __name__ == '__main__':
 
-    TEST_DATA_DIR = '/content/datasets/HKPU_A_CROP_W25P_V2'  # 24.11.08 HKdb-2 test에 맞춰 변경함
-    SAVE_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/test_result'  # 24.11.08 HKdb-2 test에 맞춰 변경함
+    # TEST_DATA_DIR = '/content/HKPU_A_CROP_W25P_V2'  # 24.11.08 HKdb-2 test에 맞춰 변경함
+    # SAVE_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-2/test_result'  # 24.11.08 HKdb-2 test에 맞춰 변경함
 
-    # TEST_DATA_DIR = '/content/datasets/HKPU_B_CROP_W25P_V2'  # 24.10.10 HKdb-1 test에 맞춰 변경함
-    # SAVE_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/test_result'  # 24.10.13 HKdb-1 test에 맞춰 변경함
+    TEST_DATA_DIR = '/content/HKPU_B_CROP_W25P_V2'  # 24.10.10 HKdb-1 test에 맞춰 변경함
+    SAVE_DIR = '/content/drive/MyDrive/perceptual/output/HKdb-1/test_result'  # 24.10.13 HKdb-1 test에 맞춰 변경함
 
 
     def get_args():
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # List of epochs to test
     # epoch_list = list(range(211, 301, 1))  # 24.10.10 HKdb-2 test에 맞춰 변경함
     # epoch_list = list(range(210, 250, 10)) + list(range(260, 300, 10)) + list(range(310, 350, 10))  # 24.09.24 SDDB-2 test에 맞춰 변경함
-    epoch_list = list(range(250, 750, 50))
+    epoch_list = list(range(350, 750, 50))
 
     # epoch_list = []
     # for j in range(200, 510, 10):
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
     for epoch in epoch_list:
         # Construct weight path and save directory based on the epoch
-        load_weight_dir = f'/content/drive/MyDrive/perceptual/output/HKdb-2/checkpoints/Gen_former_{epoch}.pt'  # 24.10.10 HKdb-2 test에 맞춰 변경함
+        load_weight_dir = f'/content/drive/MyDrive/perceptual/output/HKdb-1/checkpoints/Gen_former_{epoch}.pt'  # 24.11.11 HKdb-1 test에 맞춰 변경함
         save_dir_epoch = join(SAVE_DIR, f'epoch_{epoch}')
 
         # Create save directory if not exists
