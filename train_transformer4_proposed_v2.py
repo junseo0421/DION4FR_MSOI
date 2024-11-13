@@ -370,7 +370,7 @@ if __name__ == '__main__':
 
         parser.add_argument('--train_batch_size', type=int, help='batch size of training data', default=2)
         parser.add_argument('--test_batch_size', type=int, help='batch size of testing data', default=16)
-        parser.add_argument('--epochs', type=int, help='number of epoches', default=700)
+        parser.add_argument('--epochs', type=int, help='number of epoches', default=500)
         parser.add_argument('--lr', type=float, help='learning rate', default=0.0004)
         parser.add_argument('--alpha', type=float, help='learning rate decay for discriminator', default=0.1)
         parser.add_argument('--load_pretrain', type=bool, help='load pretrain weight', default=True)  # pretrain !!!
@@ -499,7 +499,7 @@ if __name__ == '__main__':
 
     # Load pre-trained weight
     if args.load_pretrain:
-        start_epoch = 130
+        start_epoch = 320
         print(f'Loading model weight...at epoch {start_epoch}')
         gen.load_state_dict(torch.load(join(args.load_weight_dir, f'Gen_former_{start_epoch}.pt')))
         dis.load_state_dict(torch.load(join(args.load_weight_dir, f'Dis_former_{start_epoch}.pt')))
