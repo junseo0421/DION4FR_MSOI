@@ -189,7 +189,7 @@ def train(gen, dis, opt_gen, opt_dis, epoch, train_loader, writer):  #24.09.19 r
     # writer.add_scalars('train/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(train_loader.dataset)},
     #                    epoch)  # 24.11.04 perceptual_loss
 
-    writer.add_scalars('train/perceptual_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
+    writer.add_scalars('train/style_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('train/generator_loss', {'Style Loss': acc_style_loss / len(train_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
@@ -343,7 +343,7 @@ def valid(gen, dis, opt_gen, opt_dis, epoch, valid_loader, writer):
     # writer.add_scalars('valid/generator_loss', {'Perceptual Loss': acc_perceptual_loss / len(valid_loader.dataset)},
     #                    epoch)  # 24.11.04 perceptual_loss
     
-    writer.add_scalars('valid/perceptual_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
+    writer.add_scalars('valid/style_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
     writer.add_scalars('valid/generator_loss', {'Style Loss': acc_style_loss / len(valid_loader.dataset)},
                        epoch)  # 24.11.04 perceptual_loss
@@ -414,7 +414,7 @@ if __name__ == '__main__':
     ## 2023 11 08 class-wise하게 8:2로 나눠줌
     base_dir = '/content'
     HKdb_dir = 'HK-db/HKdb_1'  # 24.11.09 HKDB-1
-    SDdb_dir = 'SD-db/SDdb_1'  # 24.11.14 SDdb-2
+    SDdb_dir = 'SD-db/SDdb_1'  # 24.11.14 SDdb-1
 
     # 각 서브 폴더의 경로를 설정
     original_dir = join(base_dir, 'original_images_split', SDdb_dir)  
